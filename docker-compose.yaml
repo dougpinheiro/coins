@@ -1,0 +1,42 @@
+version: "3.9"
+volumes: 
+  coins_data: {}
+networks: 
+  coins-net:
+    external: false
+services:
+  scraper:
+    build: ./scraper
+    networks:
+      - coins-net
+  elasticsearch:
+    image: elasticsearch:7.10.1
+    ports: 
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - coins-net
+    environment:
+      - "discovery.type=single-node"
+    volumes: 
+      - "coins_data:/usr/share/elasticsearch/data"
+  logstash:
+    build: ./logstash
+    depends_on: 
+      - scraper
+      - elasticsearch
+    networks:
+      - coins-net
+    links: 
+      - "elasticsearch:elasticsearch"
+  kibana:
+    image: kibana:7.10.1
+    depends_on: 
+      - elasticsearch
+      - logstash
+    ports: 
+      - "5601:5601"
+    networks:
+      - coins-net
+    links: 
+      - "elasticsearch:elasticsearch"
